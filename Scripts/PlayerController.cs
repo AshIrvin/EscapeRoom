@@ -1,8 +1,5 @@
 using System;
-using System.Threading.Tasks;
-using Unity.Burst.CompilerServices;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class PlayerController : MonoBehaviour
 {
@@ -14,7 +11,7 @@ public class PlayerController : MonoBehaviour
     public float distance;
     public float rotDistance;
 
-    public static Action OnMovementStopped;
+    public static Action OnPlayerRotate;
 
     private void Start()
     {
@@ -30,13 +27,12 @@ public class PlayerController : MonoBehaviour
     private void RotatePlayerLeft()
     {
         transform.rotation = Quaternion.LookRotation(-transform.right, Vector3.up);
-        //transform.Rotate(Vector3.up, -90);
+        OnPlayerRotate?.Invoke();
     }
 
     private void RotatePlayerRight() 
     {
         transform.rotation = Quaternion.LookRotation(transform.right, Vector3.up);
-        //transform.Rotate(Vector3.up, 90);
+        OnPlayerRotate?.Invoke();
     }
-
 }

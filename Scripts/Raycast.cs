@@ -6,7 +6,8 @@ public class Raycast : MonoBehaviour
 {
     [SerializeField] private LayerMask _interactionLayerMask;
     [SerializeField] private LayerMask _staticCameraPositions;
-    [SerializeField] private float _useDistance;
+    [SerializeField] private float _useDistance = 2;
+    [SerializeField] private float _walkDistance = 6;
     [SerializeField] private Camera _cam;
 
     public static Action<RaycastHit> OnPointClickMoveRaycastHit;
@@ -18,9 +19,9 @@ public class Raycast : MonoBehaviour
     {
         Ray ray = _cam.ScreenPointToRay(Input.mousePosition);
 
-        if (EventSystem.current.IsPointerOverGameObject() &&
-            Physics.Raycast(ray, out RaycastHit hit, _useDistance, _interactionLayerMask))
+        if (Physics.Raycast(ray, out RaycastHit hit, _useDistance, _interactionLayerMask))
         {
+            Debug.DrawLine(_cam.transform.position, hit.point, Color.green, 1);
             OnInteractableRaycastHit?.Invoke(hit);
         }
     }
@@ -29,10 +30,8 @@ public class Raycast : MonoBehaviour
     {
         Ray ray = _cam.ScreenPointToRay(Input.mousePosition);
 
-        pointerGo = EventSystem.current.IsPointerOverGameObject();
-
         if (!EventSystem.current.IsPointerOverGameObject() &&
-            Physics.Raycast(ray, out RaycastHit hit, _useDistance, _staticCameraPositions))
+            Physics.Raycast(ray, out RaycastHit hit, _walkDistance, _staticCameraPositions))
         {
             OnPointClickMoveRaycastHit?.Invoke(hit);
         }

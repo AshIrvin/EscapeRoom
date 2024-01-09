@@ -3,29 +3,26 @@ using UnityEngine;
 
 public class PlayerInteraction : MonoBehaviour
 {
-    [SerializeField] private Transform _targetHolder;
+    [SerializeField] private Transform _playerObjectHolder;
+    [SerializeField] private GameObject _heldObject;
+    [SerializeField] private Transform _originalParent;
+    [SerializeField] private Transform _placeObject;
 
     private PlayerController _playerController;
-    private readonly float _smoothTime = 0.2f;
     private Raycast _raycast;
-    private Camera _cam;
-    private GameObject _heldObject;
-    private Vector3 _currentVelocity = Vector3.zero;
-    private bool _sendToPlayer;
 
     public static Action OnButtonRelease;
 
     private void Start()
     {
-        _cam = Camera.main;
         _raycast = GetComponent<Raycast>();
         _playerController = GetComponent<PlayerController>();
         
         Raycast.OnPointClickMoveRaycastHit += PointClickMoveRaycast;
         Raycast.OnInteractableRaycastHit += InteractableRaycast;
+        PlayerController.OnPlayerRotate += ToggleHeldObjectMesh;
 
-        if (_targetHolder == null)
-            _targetHolder = _cam.transform.Find("TargetDragObject");
+        if (_playerObjectHolder == null) Debug.LogError("Missing _targetHolder");
     }
 
     private void Update()
@@ -40,17 +37,6 @@ public class PlayerInteraction : MonoBehaviour
 
     private void UseInteraction()
     {
-        if (Input.GetMouseButtonUp(0))
-        {
-            StopMovingObject();
-            return;
-        }
-
-        if (IsHoldingObject())
-        {
-            return;
-        }
-
         SendRaycastOnButtonPress();
     }
 
@@ -60,8 +46,19 @@ public class PlayerInteraction : MonoBehaviour
     }
 
     private void PointClickMoveRaycast(RaycastHit hit)
-    {
+    { // TODO - This should be it's own door script with a locked bool
+        if (hit.transform.name.Contains("Locked"))
+        {
+            LockedDoor(hit.transform.GetComponent<EventManager>());
+            return;
+        }
+
         _playerController.SetPlayerPosition(hit.transform);
+    }
+
+    private void LockedDoor(EventManager eventManager)
+    {
+        eventManager.StartEvent();
     }
 
     private void SendRaycastOnButtonPress()
@@ -80,33 +77,52 @@ public class PlayerInteraction : MonoBehaviour
         {
             case "HeldObject":
                 if (_heldObject != null) return;
-                _sendToPlayer = true;
                 _heldObject = collider.gameObject;
+                HoldObject();
                 break;
             case "PlaceObject":
                 if (_heldObject == null) return;
-                collider.transform.position = _heldObject.transform.position;
+                _placeObject = collider.transform;
+                PlaceObjectInHolder(_placeObject);
                 break;
         }
     }
 
-    private bool IsHoldingObject()
+    private void PlaceObjectInHolder(Transform holder)
     {
-        if (!_sendToPlayer || _heldObject == null) return false;
+        if (_placeObject == null) return;
 
-        _heldObject.transform.position = Vector3.SmoothDamp(_heldObject.transform.position, _targetHolder.position, ref _currentVelocity, _smoothTime);
-        
-        if (Vector3.Distance(_heldObject.transform.position, _targetHolder.position) < 0.1f)
-        {
-            StopMovingObject();
-        }
-
-        return true;
+        var pos = holder.position;
+        _heldObject.transform.SetParent(_originalParent, false);
+        _heldObject.transform.SetPositionAndRotation(pos, holder.rotation);
+        _heldObject = null;
+        _originalParent = null;
+        _placeObject = null;
     }
 
-    private void StopMovingObject()
+    private void HoldObject()
     {
-        _sendToPlayer = false;
-        _heldObject = null;
+        if (_heldObject == null) return;
+
+        _originalParent = _heldObject.transform.parent;
+        
+        _heldObject.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+        _heldObject.transform.SetParent(_playerObjectHolder.transform, false);
+
+        ToggleHeldObjectMesh();
+    }
+
+    internal void ToggleHeldObjectMesh()
+    { // TODO - Temp fix. Object disappears from view randomly? 
+        if (_heldObject == null ) return;
+
+        var meshRenderer = _heldObject.GetComponent<MeshRenderer>();
+        meshRenderer = meshRenderer != null ? meshRenderer : _heldObject.GetComponentInChildren<MeshRenderer>();
+
+        if (meshRenderer != null)
+        {
+            meshRenderer.enabled = false;
+            meshRenderer.enabled = true;
+        }
     }
 }

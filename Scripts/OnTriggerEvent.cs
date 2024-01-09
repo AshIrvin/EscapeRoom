@@ -1,67 +1,49 @@
-using System;
 using UnityEngine;
-using UnityEngine.Events;
 
 public class OnTriggerEvent : MonoBehaviour
 {
-    public enum Interactable
-    {
-        ObjectHolder,
-        EnteredVolume,
-        PlayAnimation
-    }
-
-    [SerializeField] private Interactable _interactable;
     [SerializeField] private GameObject _matchObject;
-    [SerializeField] private UnityEvent _startEvent;
-    [SerializeField] private UnityEvent _stopEvent;
+    [SerializeField] private bool _matchName;
+    
+    private EventManager _eventManager;
+
+    private void Start()
+    {
+        _eventManager = GetComponent<EventManager>();
+
+        if (_eventManager == null) Debug.Log($"No Event Manager attached to {name} gameobject.");
+    }
 
     private void OnTriggerEnter(Collider other)
     {
-        SwitchEvents(other);
-    }
-
-    private void SwitchEvents(Collider other)
-    {
-        switch (_interactable)
+        if (HasMatchedObject(other) && _eventManager != null)
         {
-            case Interactable.ObjectHolder:
-                if (HasMatchedObject(other))
-                    GrabObject(other);
-                break;
-            case Interactable.EnteredVolume: // TODO - this was for keypad
-                //if (HasMatchedObject(other))
-                break;
-            case Interactable.PlayAnimation:
-                if (HasMatchedObject(other))
-                    StartEvent();
-                break;
+            _eventManager.StartEvent(gameObject);
         }
     }
 
-    private void StartEvent()
+    private void OnTriggerExit(Collider other)
     {
-        _startEvent?.Invoke();
-    }
-
-    private void StopEvent()
-    {
-        _stopEvent?.Invoke();
+        if (HasMatchedObject(other) && _eventManager != null)
+        {
+            _eventManager.StopEvent(gameObject);
+        }
     }
 
     private bool HasMatchedObject(Collider other)
     { // No object assigned to match object, then any will do
+        if (_matchName)
+        {
+            Debug.Log($"other {name}");
+            if (other.name.Contains(_matchObject.name))
+            {
+                return true;
+            }
+        }
+
         if (_matchObject == null || _matchObject == other.gameObject)
             return true;
 
         return false;
-    }
-
-    private void GrabObject(Collider other)
-    {
-        if (other.CompareTag("HeldObject"))
-        {
-            other.transform.position = transform.position;
-        }
     }
 }
